@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h5 class="display-6">Employees</h5>
+    <form method="post" enctype="multipart/form-data" asp-controller="Home" asp-action="Index">
+        <div class="form-group">
+            <div class="col-md-10">
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <p>Import the csv file using this form:</p>
+                <input type="file" name="formFile" accept=".csv" required />
+            </div>
+        </div>
+        <br />
+        <div class="form-group">
+            <div class="col-md-10">
+                <input type="submit" value="Import" />
+            </div>
+        </div>
+    </form>
+</div>
