@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic.FileIO;
-using Newtonsoft.Json;
 using System.Data;
 using System.Diagnostics;
 using EmployeeWebApp.Models;
+using System.Data.SqlClient;
 
 namespace EmployeeWebApp.Controllers
 {
@@ -63,6 +63,16 @@ namespace EmployeeWebApp.Controllers
 
         private async Task ProcessData(IFormFile formFile)
         {
+            string filePath = await HandleFile(formFile);
+
+            DataTable csvData = ReadCsvFile(filePath);
+
+            AddToDB(csvData);
+
+            System.IO.File.Delete(filePath);// after process of data remove the uploaded temporary csv file
+        }
+        private async Task<string> HandleFile(IFormFile formFile)
+        {
             var filePath = Path.Combine(
                 Directory.GetCurrentDirectory(),
                 "wwwroot\\uploads",
@@ -82,6 +92,10 @@ namespace EmployeeWebApp.Controllers
             //using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             //    await SingleFile.CopyToAsync(stream);
 
+            return filePath;
+        }
+        private DataTable ReadCsvFile(string filePath)
+        {
             try
             {
                 var csvData = new DataTable("Employees");
@@ -94,7 +108,7 @@ namespace EmployeeWebApp.Controllers
                     string[] colFields = parser.ReadFields();
                     foreach (string column in colFields)
                     {
-                        var datecolumn = new DataColumn(column)
+                        var datecolumn = new DataColumn(column.Replace("Personnel_Records.", ""))
                         {
                             AllowDBNull = true
                         };
@@ -103,7 +117,7 @@ namespace EmployeeWebApp.Controllers
 
                     while (!parser.EndOfData)
                         csvData.Rows.Add(parser.ReadFields());
-
+                    #region parse to model
                     //parser.ReadFields(); // skip headline
                     //while (!parser.EndOfData)
                     //{
@@ -122,15 +136,44 @@ namespace EmployeeWebApp.Controllers
                     //    var emailHome = fields[9];
                     //    var startDate = fields[10];
                     //}
+                    #endregion
                 }
-                var jsonString = JsonConvert.SerializeObject(csvData);
+                //var jsonString = JsonConvert.SerializeObject(csvData);
+                return csvData;
             }
             catch (Exception ex)
             {
-                return;
+                throw ex;
             }
+        }
+        private void AddToDB(DataTable csvData)
+        {
+            var dtColumns = csvData.Columns.Cast<DataColumn>();
+            string cols1 = string.Join(", ", dtColumns.Select(x => x.ColumnName));
+            string cols2 = string.Join(", ", dtColumns.Select(x => $"@{x.ColumnName}"));
 
-            System.IO.File.Delete(filePath);// after process of data remove the uploaded temporary csv file
+            //string sql = "INSERT INTO T (A, B, C) VALUES (@A, @B, @C)";
+            string sql = $"INSERT INTO Employees ({cols1}) VALUES ({cols2})";
+
+            var sqlConnStrBuilder = new SqlConnectionStringBuilder
+            {
+                DataSource = "localhost",
+                InitialCatalog = "EmployeeWebAppDB",
+                IntegratedSecurity = true
+            };
+            var sqlConn = new SqlConnection(sqlConnStrBuilder.ConnectionString);
+            using (var conn = sqlConn)
+            {
+                conn.Open();
+                foreach (DataRow row in csvData.Rows)
+                {
+                    SqlCommand cmd = conn.CreateCommand();
+                    foreach (DataColumn col in csvData.Columns)
+                        cmd.Parameters.AddWithValue($"@{col.ColumnName}", row[col.ColumnName]);
+                    cmd.CommandText = sql;
+                    cmd.ExecuteNonQuery();
+                }
+            }
         }
 
         public IActionResult Privacy()
