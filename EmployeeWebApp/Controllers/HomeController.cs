@@ -21,9 +21,9 @@ namespace EmployeeWebApp.Controllers
             if (!CheckInput(formFile))
                 return View("Index");
 
-            await ProcessData(formFile);
+            var csvData = await ProcessData(formFile);
 
-            return Ok();
+            return View(csvData);
         }
 
         private bool CheckInput(IFormFile formFile)
@@ -61,15 +61,16 @@ namespace EmployeeWebApp.Controllers
             return true;
         }
 
-        private async Task ProcessData(IFormFile formFile)
+        private async Task<DataTable> ProcessData(IFormFile formFile)
         {
             string filePath = await HandleFile(formFile);
 
             DataTable csvData = ReadCsvFile(filePath);
 
-            AddToDB(csvData);
+            //AddToDB(csvData);
 
             System.IO.File.Delete(filePath);// after process of data remove the uploaded temporary csv file
+            return csvData;
         }
         private async Task<string> HandleFile(IFormFile formFile)
         {
@@ -169,7 +170,7 @@ namespace EmployeeWebApp.Controllers
                 {
                     SqlCommand cmd = conn.CreateCommand();
                     foreach (DataColumn col in csvData.Columns)
-                        cmd.Parameters.AddWithValue($"@{col.ColumnName}", row[col.ColumnName]);
+                        cmd.Parameters.AddWithValue($"@{col.ColumnName}", row[col]);
                     cmd.CommandText = sql;
                     cmd.ExecuteNonQuery();
                 }

@@ -1,11 +1,15 @@
-﻿@{
+﻿@using System.Data
+@model DataTable
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
     <h5 class="display-6">Employees</h5>
-    <form method="post" enctype="multipart/form-data" asp-controller="Home" asp-action="Index">
-        <div class="form-group">
+    @if (Model == null)
+    {
+        <form method="post" enctype="multipart/form-data" asp-controller="Home" asp-action="Index">
+            <div class="form-group">
             <div class="col-md-10">
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <p>Import the csv file using this form:</p>
@@ -19,4 +23,24 @@
             </div>
         </div>
     </form>
+    }
+    else {
+        <table>
+            <tr>
+                @foreach (DataColumn col in Model.Columns)
+                {
+                    <th>@col.ColumnName</th>
+                }
+            </tr>
+            @foreach (DataRow row in Model.Rows)
+            {
+                <tr>
+                    @foreach (DataColumn col in Model.Columns)
+                    {
+                        <td>@row[col]</td>
+                    }
+                </tr>
+            }
+        </table>
+    }
 </div>

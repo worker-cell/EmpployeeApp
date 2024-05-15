@@ -20,3 +20,17 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+table th {
+    border: 1px solid black;
+    text-align: justify;
+}
+
+table td {
+    border: 1px solid black;
+    text-align: justify;
+}
+
+th, td {
+    padding: 15px;
+}
